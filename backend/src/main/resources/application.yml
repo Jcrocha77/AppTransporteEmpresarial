@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: transporte-empresarial-api
+  datasource:
+    url: jdbc:h2:mem:transporte;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 32MB
+server:
+  port: 8080
+app:
+  upload-dir: ${UPLOAD_DIR:./uploads/dirty-unit}

@@ -1,0 +1,183 @@
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Ruta Empresa, inicio" (click)="$event.preventDefault(); openView('trip')">
+      <span class="brand-mark" aria-hidden="true">r.</span>
+      <span class="brand-copy"><strong>ruta empresa</strong><small>movilidad corporativa</small></span>
+    </a>
+    <div class="topbar-right">
+      <span class="service-state"><span class="state-dot"></span>Servicio empresarial</span>
+      <span class="profile-mark" aria-label="Portal de colaborador">PE</span>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <aside class="side-nav" aria-label="Navegación principal">
+      <span class="nav-caption">TU JORNADA</span>
+      <button class="nav-link" [class.active]="activeView() === 'trip'" type="button" (click)="openView('trip')">
+        <span class="nav-icon" aria-hidden="true">⌖</span><span>Mi transporte</span>
+      </button>
+      <button class="nav-link" [class.active]="activeView() === 'reports'" type="button" (click)="openView('reports')">
+        <span class="nav-icon" aria-hidden="true">↗</span><span>Reportar incidencia</span>
+      </button>
+      <div class="side-divider"></div>
+      <div class="support-note"><span class="support-icon" aria-hidden="true">i</span><p>Tu seguridad y puntualidad son prioridad.</p></div>
+      <div class="side-footer"><span class="live-dot"></span>Portal de transporte</div>
+    </aside>
+
+    <main class="main-content">
+      <section *ngIf="activeView() === 'trip'" class="view-section" aria-labelledby="trip-title">
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> TRANSPORTE PRIVADO</div>
+            <h1 id="trip-title">Tu viaje, a la vista.</h1>
+            <p class="page-lede">Consulta la ubicación de la unidad asignada a tu ruta.</p>
+          </div>
+          <div class="date-stamp"><span class="date-icon" aria-hidden="true">◷</span><span>Seguimiento en tiempo real</span></div>
+        </div>
+
+        <section class="lookup-panel" aria-label="Consulta de transporte">
+          <div class="lookup-copy">
+            <span class="step-number">01</span>
+            <div><h2>Localiza tu transporte</h2><p>Usa tus datos de colaborador para encontrar tu unidad.</p></div>
+          </div>
+          <form class="lookup-form" (ngSubmit)="findTransport()">
+            <label class="field">
+              <span>Número de empleado</span>
+              <input name="employeeNumber" [(ngModel)]="employeeNumber" autocomplete="username" placeholder="Ej. 008425" required>
+            </label>
+            <label class="field">
+              <span>Empresa</span>
+              <input name="company" [(ngModel)]="company" autocomplete="organization" placeholder="Nombre de tu empresa" required>
+            </label>
+            <button class="button button-primary lookup-button" type="submit" [disabled]="locationState() === 'loading'">
+              <span aria-hidden="true">⌖</span>{{ locationState() === 'loading' ? 'Buscando…' : 'Consultar unidad' }}
+            </button>
+          </form>
+          <p *ngIf="locationState() === 'error'" class="inline-error" role="alert">{{ locationMessage() }}</p>
+        </section>
+
+        <section class="map-section" aria-labelledby="map-title">
+          <div class="section-heading">
+            <div><span class="eyebrow">SEGUIMIENTO</span><h2 id="map-title">Ubicación de tu unidad</h2></div>
+            <span *ngIf="lastChecked()" class="updated-label">Actualizado {{ lastChecked() | date:'HH:mm' }}</span>
+          </div>
+          <div class="map-frame">
+            <ng-container *ngIf="location() as liveLocation; else emptyMap">
+              <div #mapCanvas class="leaflet-map" aria-label="Mapa con la ubicación de tu transporte"></div>
+              <div class="map-status"><span class="state-dot"></span>Unidad localizada</div>
+              <div class="vehicle-card">
+                <span class="vehicle-icon" aria-hidden="true">▰</span>
+                <span><strong>{{ liveLocation.vehicleLabel || 'Unidad asignada' }}</strong><small>{{ liveLocation.routeName || 'Ruta de transporte' }}</small></span>
+                <span *ngIf="liveLocation.etaMinutes !== null" class="eta"><strong>{{ liveLocation.etaMinutes }}</strong><small>min</small></span>
+              </div>
+            </ng-container>
+            <ng-template #emptyMap>
+              <div class="map-empty" [class.is-loading]="locationState() === 'loading'">
+                <div class="map-lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                <div class="map-empty-content">
+                  <span class="map-pin" aria-hidden="true">⌖</span>
+                  <strong>{{ locationState() === 'loading' ? 'Buscando tu unidad' : 'El mapa aparecerá aquí' }}</strong>
+                  <p>{{ locationMessage() }}</p>
+                  <span class="map-contract">{{ locationState() === 'unavailable' ? 'SERVICIO DE UBICACIÓN PENDIENTE DE CONEXIÓN' : 'CONSULTA TU UNIDAD PARA COMENZAR' }}</span>
+                </div>
+                <div class="map-legend"><span class="legend-dot"></span>Ubicación del transporte</div>
+              </div>
+            </ng-template>
+          </div>
+          <div class="map-footnote"><span aria-hidden="true">i</span> La ubicación se muestra cuando el servicio de transporte comparte sus coordenadas.</div>
+        </section>
+      </section>
+
+      <section *ngIf="activeView() === 'reports'" class="view-section" aria-labelledby="reports-title">
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> ESTAMOS PARA AYUDARTE</div>
+            <h1 id="reports-title">¿Qué ocurrió en tu viaje?</h1>
+            <p class="page-lede">Cuéntanos y haremos llegar tu reporte al equipo correspondiente.</p>
+          </div>
+          <div class="help-badge"><span aria-hidden="true">+</span> Atención al viaje</div>
+        </div>
+
+        <div *ngIf="!activeReport()" class="report-options">
+          <button class="report-option delay-option" type="button" (click)="openReport('delay')">
+            <span class="option-symbol" aria-hidden="true">◷</span><span class="option-copy"><strong>Reportar retraso</strong><small>Avísanos por qué no llegarás a tiempo.</small></span><span class="option-arrow" aria-hidden="true">→</span>
+          </button>
+          <button class="report-option accident-option" type="button" (click)="openReport('accident')">
+            <span class="option-symbol" aria-hidden="true">!</span><span class="option-copy"><strong>Reportar accidente</strong><small>Envía una alerta para activar el protocolo de atención.</small></span><span class="option-arrow" aria-hidden="true">→</span>
+          </button>
+          <button class="report-option clean-option" type="button" (click)="openReport('dirty')">
+            <span class="option-symbol" aria-hidden="true">≋</span><span class="option-copy"><strong>Reportar unidad sucia</strong><small>Comparte detalles y fotografías de la unidad.</small></span><span class="option-arrow" aria-hidden="true">→</span>
+          </button>
+          <div class="reports-aside"><span class="aside-mark">R</span><p><strong>Tu reporte importa.</strong><br>Nos ayuda a mejorar cada trayecto.</p></div>
+        </div>
+
+        <section *ngIf="activeReport()" class="report-form-panel">
+          <button class="back-link" type="button" (click)="openReport(null)"><span aria-hidden="true">←</span> Volver a incidencias</button>
+          <div *ngIf="activeReport() === 'delay'" class="report-form-content">
+            <div class="form-title-row"><span class="form-symbol delay-symbol" aria-hidden="true">◷</span><div><div class="eyebrow">INCIDENCIA DE VIAJE</div><h2>Reportar retraso</h2></div></div>
+            <p class="form-intro">Selecciona el motivo para registrar el aviso.</p>
+            <form (ngSubmit)="submitDelay()">
+              <div class="identity-fields">
+                <label class="field"><span>Número de empleado</span><input name="delayEmployeeNumber" [(ngModel)]="employeeNumber" required></label>
+                <label class="field"><span>Empresa</span><input name="delayCompany" [(ngModel)]="company" required></label>
+              </div>
+              <fieldset class="reason-fieldset"><legend>Motivo del retraso</legend>
+                <label class="radio-option"><input type="radio" name="delayReason" [(ngModel)]="delayReason" value="MISSED_TRANSPORT" required><span class="radio-indicator"></span><span>se me hizo tarde y no alcancé el transporte</span></label>
+                <label class="radio-option"><input type="radio" name="delayReason" [(ngModel)]="delayReason" value="TRANSPORT_LATE"><span class="radio-indicator"></span><span>el transporte llegó tarde</span></label>
+                <label class="radio-option"><input type="radio" name="delayReason" [(ngModel)]="delayReason" value="HEAVY_TRAFFIC"><span class="radio-indicator"></span><span>tráfico denso</span></label>
+              </fieldset>
+              <div *ngIf="reportError()" class="form-alert error-alert" role="alert">{{ reportError() }}</div>
+              <div *ngIf="reportMessage()" class="form-alert success-alert" role="status">{{ reportMessage() }}</div>
+              <button class="button button-primary submit-button" type="submit" [disabled]="reportBusy()">{{ reportBusy() ? 'Enviando…' : 'Enviar reporte' }} <span aria-hidden="true">→</span></button>
+            </form>
+          </div>
+
+          <div *ngIf="activeReport() === 'accident'" class="report-form-content">
+            <div class="form-title-row"><span class="form-symbol accident-symbol" aria-hidden="true">!</span><div><div class="eyebrow">ATENCIÓN PRIORITARIA</div><h2>Reportar accidente</h2></div></div>
+            <div class="safety-callout"><strong>Si hay una emergencia médica o riesgo inmediato, llama al número local de emergencias.</strong><span>Al enviar este formulario, se solicitará una notificación automática al equipo de atención.</span></div>
+            <form (ngSubmit)="submitAccident()">
+              <div class="identity-fields">
+                <label class="field"><span>Número de empleado</span><input name="accidentEmployeeNumber" [(ngModel)]="employeeNumber" required></label>
+                <label class="field"><span>Empresa</span><input name="accidentCompany" [(ngModel)]="company" required></label>
+              </div>
+              <label class="field details-field"><span>Detalles adicionales <small>Opcional</small></span><textarea name="accidentDetails" [(ngModel)]="accidentDetails" maxlength="500" rows="4" placeholder="Indica brevemente lo ocurrido y si alguien necesita apoyo."></textarea></label>
+              <div *ngIf="reportError()" class="form-alert error-alert" role="alert">{{ reportError() }}</div>
+              <div *ngIf="reportMessage()" class="form-alert success-alert" role="status">{{ reportMessage() }}</div>
+              <button class="button button-danger submit-button" type="submit" [disabled]="reportBusy()">{{ reportBusy() ? 'Enviando alerta…' : 'Enviar alerta de accidente' }} <span aria-hidden="true">→</span></button>
+            </form>
+          </div>
+
+          <div *ngIf="activeReport() === 'dirty'" class="report-form-content">
+            <div class="form-title-row"><span class="form-symbol clean-symbol" aria-hidden="true">≋</span><div><div class="eyebrow">CONDICIONES DE LA UNIDAD</div><h2>Reportar unidad sucia</h2></div></div>
+            <p class="form-intro">Describe el estado de la unidad y agrega evidencia si la tienes.</p>
+            <form (ngSubmit)="submitDirtyUnit()">
+              <div class="identity-fields">
+                <label class="field"><span>Número de empleado</span><input name="dirtyEmployeeNumber" [(ngModel)]="employeeNumber" required></label>
+                <label class="field"><span>Empresa</span><input name="dirtyCompany" [(ngModel)]="company" required></label>
+              </div>
+              <label class="field details-field"><span>Descripción</span><textarea name="dirtyDescription" [(ngModel)]="dirtyDescription" maxlength="150" rows="3" required placeholder="¿Qué observaste en la unidad?"></textarea><small class="character-count">{{ dirtyDescription.length }}/150</small></label>
+              <div class="field upload-field">
+                <span>Fotografías de evidencia <small>Hasta 3 imágenes</small></span>
+                <label class="upload-zone" [class.upload-disabled]="selectedImages().length >= 3">
+                  <input type="file" accept="image/*" multiple [disabled]="selectedImages().length >= 3" (change)="onImagesSelected($event)">
+                  <span class="upload-symbol" aria-hidden="true">↑</span><strong>Selecciona imágenes</strong><small>PNG, JPG o HEIC</small>
+                </label>
+                <div *ngIf="imagePreviewUrls().length" class="image-previews">
+                  <div *ngFor="let preview of imagePreviewUrls(); let index = index" class="image-preview">
+                    <img [src]="preview" [alt]="'Evidencia ' + (index + 1)">
+                    <button type="button" [attr.aria-label]="'Quitar imagen ' + (index + 1)" (click)="removeImage(index)">×</button>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="reportError()" class="form-alert error-alert" role="alert">{{ reportError() }}</div>
+              <div *ngIf="reportMessage()" class="form-alert success-alert" role="status">{{ reportMessage() }}</div>
+              <button class="button button-primary submit-button" type="submit" [disabled]="reportBusy()">{{ reportBusy() ? 'Enviando…' : 'Enviar reporte' }} <span aria-hidden="true">→</span></button>
+            </form>
+          </div>
+        </section>
+      </section>
+
+      <footer class="app-footer"><span>Ruta Empresa</span><span>Movilidad que te acompaña.</span></footer>
+    </main>
+  </div>
+</div>
